@@ -80,7 +80,7 @@ implementation("net.clojars.fr33m0nk:clj-bucket4j-datomic:0.1.0")
 
 ```
 
-#### More detailed usages of below functions can be found in [tests](https://github.com/fr33m0nk/clj-bucket4j-datomic/blob/master/test/fr33m0nk/clj_bucket4j_datomic_test.clj).
+#### More detailed usages of above functions and more can be found in [tests](https://github.com/fr33m0nk/clj-bucket4j-datomic/blob/master/test/fr33m0nk/clj_bucket4j_datomic_test.clj).
 
 ## License
 
