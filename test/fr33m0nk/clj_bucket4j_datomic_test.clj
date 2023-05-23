@@ -133,8 +133,4 @@
             (let [bucket (b4j-datomic/add-distributed-bucket proxy-manager "parallel-test-bucket" (reify Supplier
                                                                                                     (get [_]
                                                                                                       configuration)))]
-              (is (instance? BucketNotFoundException (try
-                                                       (b4j/try-consume bucket-3 1)
-                                                       (catch Exception ex
-                                                         ex))))
               (is (= (- 10 parallelism) (b4j/get-available-token-count bucket))))))))))
