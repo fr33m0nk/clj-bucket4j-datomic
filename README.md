@@ -26,11 +26,11 @@ net.clojars.fr33m0nk/clj-bucket4j-datomic {:mvn/version "0.1.0"}
 ```groovy
 implementation("net.clojars.fr33m0nk:clj-bucket4j-datomic:0.1.0")
 ```
-### **Prior to using this below functions, it is necessary to execute [these Datomic migrations](https://github.com/fr33m0nk/clj-bucket4j-datomic/blob/master/src/fr33m0nk/datomic_schema.clj)**
+### **Prior to using below functions, it is necessary to execute [these Datomic migrations](https://github.com/fr33m0nk/clj-bucket4j-datomic/blob/master/src/fr33m0nk/datomic_schema.clj)**
 
-### **All functions are available through the [`fr33m0nk.clj-bucket4j-datomic`](https://github.com/fr33m0nk/clj-bucket4j-datomic/blob/master/src/fr33m0nk/clj_bucket4j_datomic.clj) namespace**
+#### All functions are available through the [`fr33m0nk.clj-bucket4j-datomic`](https://github.com/fr33m0nk/clj-bucket4j-datomic/blob/master/src/fr33m0nk/clj_bucket4j_datomic.clj) namespace
 
-### Important Functions:
+#### Important Functions:
 
 | Name                                                      | Description                                                                                                                                                                      |
 |-----------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
