@@ -10,7 +10,7 @@
   <licenses>
     <license>
       <name>MIT Licence</name>
-      <url>http://www.eclipse.org/legal/epl-v10.html</url>
+      <url>https://github.com/fr33m0nk/clj-bucket4j-datomic/blob/main/LICENSE</url>
     </license>
   </licenses>
   <developers>
