@@ -40,7 +40,7 @@ implementation("net.clojars.fr33m0nk:clj-bucket4j-datomic:0.1.0")
 | `fr33m0nk.clj-bucket4j-datomic/add-distributed-bucket`    | Adds a distributed bucket to Datomic. NOOP if bucket already exists.<br/> Returns the instance of bucket                                                                         |
 | `fr33m0nk.clj-bucket4j-datomic/remove-distributed-bucket` | Removes a distributed bucket. <br/> Permanent removal is determined by the RecoveryStrategy chosen while creating the bucket.<br/> Default strategy is to always RestoreOnDelete |
 
-## Example usage:
+## Example:
 #### as a [distributed throttler](https://bucket4j.com/8.3.0/toc.html#using-bucket-as-throttler)
 > Suppose you need to have a fresh exchange rate between dollars and euros. To get the rate you continuously poll the third-party provider, and by contract with the provider you should poll not often than 100 times per 1 minute, else provider will block your IP:
 ```clojure
