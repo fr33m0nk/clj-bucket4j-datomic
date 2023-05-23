@@ -1,4 +1,4 @@
-# fr33m0nk/clj-bucket4j-datomic
+# fr33m0nk/clj-bucket4j-datomic [![Clojars Project](https://img.shields.io/clojars/v/net.clojars.fr33m0nk/clj-bucket4j-datomic.svg)](https://clojars.org/net.clojars.fr33m0nk/clj-bucket4j-datomic)
 
 Distributed Bucket4J implementation for Datomic Database 
 
