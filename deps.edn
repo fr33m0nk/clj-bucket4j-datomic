@@ -4,7 +4,6 @@
         com.rpl/proxy-plus {:mvn/version "0.0.9"}}
  :aliases
  {:dev {:extra-deps {com.datomic/peer {:mvn/version "1.0.6733"}
-                     ;com.datomic/client-pro {:mvn/version "1.0.76"}
                      com.taoensso/timbre {:mvn/version "6.1.0"}
                      com.fzakaria/slf4j-timbre {:mvn/version "0.3.21"}}}
   :test

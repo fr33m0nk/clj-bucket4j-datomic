@@ -28,6 +28,8 @@ implementation("net.clojars.fr33m0nk:clj-bucket4j-datomic:0.1.0")
 ```
 ## Usage
 
+### Add [Datomic peer dependency](https://mvnrepository.com/artifact/com.datomic/peer) in you project if not present.
+
 ### **Prior to using below functions, it is necessary to execute [these Datomic migrations](https://github.com/fr33m0nk/clj-bucket4j-datomic/blob/master/src/fr33m0nk/datomic_schema.clj)**
 
 #### All functions are available through the [`fr33m0nk.clj-bucket4j-datomic`](https://github.com/fr33m0nk/clj-bucket4j-datomic/blob/master/src/fr33m0nk/clj_bucket4j_datomic.clj) namespace
