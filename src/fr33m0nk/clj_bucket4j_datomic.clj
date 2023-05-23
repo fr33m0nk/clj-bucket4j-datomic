@@ -33,7 +33,7 @@
         (Optional/empty)
         (Optional/of (:bucket/state bucket))))))
 
-(defn datomic-proxy-manager
+(defn ->datomic-proxy-manager
   [conn ^ClientSideConfig client-side-config]
   (proxy+ [client-side-config]
           AbstractCompareAndSwapBasedProxyManager
@@ -41,7 +41,7 @@
                                   (B4JDatomicTransaction. conn bucket-id))
     (removeProxy [this bucket-id]
                  (try
-                   @(d/transact conn [[:db.fn/retractEntity [:bucket/id bucket-id]]])
+                   @(d/transact conn [[:db/retractEntity [:bucket/id bucket-id]]])
                    nil
                    (catch Exception ex
                      (let [^Throwable inner-exception (or (.getCause ex) ex)]
@@ -55,7 +55,7 @@
 
 (defprotocol IDatomicProxyManager
   (begin-compare-and-swap-operation [datomic-proxy-manager ^String bucket-id])
-  (remove-proxy [datomic-proxy-manager ^String bucket-id])
+  (remove-distributed-bucket [datomic-proxy-manager ^String bucket-id])
   (add-distributed-bucket
     [datomic-proxy-manager ^String bucket-id ^BucketConfiguration bucket-configuration]
     [datomic-proxy-manager ^String bucket-id ^BucketConfiguration bucket-configuration ^RecoveryStrategy recovery-strategy]
@@ -65,7 +65,7 @@
   IDatomicProxyManager
   (begin-compare-and-swap-operation [this ^String bucket-id]
     (.beginCompareAndSwapOperation this bucket-id))
-  (remove-proxy [this ^String bucket-id]
+  (remove-distributed-bucket [this ^String bucket-id]
     (.removeProxy this bucket-id))
   (add-distributed-bucket
     ([this ^String bucket-id ^BucketConfiguration bucket-configuration]

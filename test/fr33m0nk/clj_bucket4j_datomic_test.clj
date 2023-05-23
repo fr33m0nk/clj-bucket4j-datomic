@@ -4,11 +4,9 @@
     [datomic.api :as d]
     [fr33m0nk.datomic-schema :refer [b4j-schema]]
     [fr33m0nk.clj-bucket4j-datomic :as b4j-datomic]
-    [fr33m0nk.clj-bucket4j :as b4j]
-    [taoensso.timbre :as timbre])
+    [fr33m0nk.clj-bucket4j :as b4j])
   (:import
     (fr33m0nk.clj_bucket4j_datomic B4JDatomicTransaction)
-    (io.github.bucket4j Refill)
     (io.github.bucket4j.distributed.proxy BucketNotFoundException ClientSideConfig RecoveryStrategy)
     (io.github.bucket4j.distributed.proxy.generic.compare_and_swap AbstractCompareAndSwapBasedProxyManager)
     (java.util.concurrent CountDownLatch)
@@ -35,7 +33,7 @@
 (deftest datomic-proxy-manager-test
   (test-harness
     datomic-conn
-    (let [proxy-manager (b4j-datomic/datomic-proxy-manager datomic-conn (ClientSideConfig/getDefault))]
+    (let [proxy-manager (b4j-datomic/->datomic-proxy-manager datomic-conn (ClientSideConfig/getDefault))]
       (testing "returns an instance of AbstractCompareAndSwapBasedProxyManager"
         (is (instance? AbstractCompareAndSwapBasedProxyManager proxy-manager)))
 
@@ -81,8 +79,9 @@
 
         (testing "removes proxy for provided bucket id"
           (is (some? (b4j/get-proxy-configuration proxy-manager "test-bucket-1")))
-          (b4j-datomic/remove-proxy proxy-manager "test-bucket-1")
-          (is (nil? (b4j/get-proxy-configuration proxy-manager "test-bucket-1")))
+          (b4j-datomic/remove-distributed-bucket proxy-manager "test-bucket-1")
+          (is (nil? (b4j/get-proxy-configuration proxy-manager "test-bucket-1"))
+              "This is only temporary. Proxy Manager would restore the bucket as default RecoveryStrategy is to reconstruct bucket")
           (is (some? (b4j/get-proxy-configuration proxy-manager "test-bucket-2")))
           (is (= 1 (->> (d/datoms (d/db datomic-conn) :avet :bucket/id)
                         (keep :e)
@@ -91,20 +90,20 @@
         (testing "recovers from a crash using default reconstruct RecoveryStrategy"
           (is (true? (b4j/try-consume bucket-2 1)))
           ;; simulate a crash
-          (b4j-datomic/remove-proxy proxy-manager "test-bucket-2")
+          (b4j-datomic/remove-distributed-bucket proxy-manager "test-bucket-2")
           (is (true? (b4j/try-consume bucket-2 1))))
 
         (testing "recovers from a crash and throws exception using ThrowExceptionRecoveryStrategy"
           (let [bucket-3 (b4j-datomic/add-distributed-bucket proxy-manager "test-bucket-3" (bucket-configuration 8 60000) (RecoveryStrategy/THROW_BUCKET_NOT_FOUND_EXCEPTION))]
             (is (true? (b4j/try-consume bucket-3 1)))
             ;; simulate a crash
-            (b4j-datomic/remove-proxy proxy-manager "test-bucket-3")
+            (b4j-datomic/remove-distributed-bucket proxy-manager "test-bucket-3")
             (is (instance? BucketNotFoundException (try
                                                      (b4j/try-consume bucket-3 1)
                                                      (catch Exception ex
                                                        ex))))))
 
-        (testing "returns parallel initialized buckets"
+        (testing "returns parallel initialized buckets and buckets are thread safe"
           (let [configuration (-> (b4j/bucket-configuration-builder)
                                   (b4j/add-limit (b4j/classic-bandwidth 10 (b4j/refill-intervally 1 60000)))
                                   (b4j/build))
@@ -134,4 +133,8 @@
             (let [bucket (b4j-datomic/add-distributed-bucket proxy-manager "parallel-test-bucket" (reify Supplier
                                                                                                     (get [_]
                                                                                                       configuration)))]
+              (is (instance? BucketNotFoundException (try
+                                                       (b4j/try-consume bucket-3 1)
+                                                       (catch Exception ex
+                                                         ex))))
               (is (= (- 10 parallelism) (b4j/get-available-token-count bucket))))))))))
