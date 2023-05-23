@@ -4,43 +4,81 @@ Distributed Bucket4J implementation for Datomic Database
 
 ## Usage
 
-FIXME: write usage documentation!
+Add the following to your project dependencies:
 
-Invoke a library API function from the command-line:
+- CLI/deps.edn dependency information
+```
+net.clojars.fr33m0nk/clj-bucket4j-datomic {:mvn/version "0.1.0"}
+```
+- Leningen/Boot
+```
+[net.clojars.fr33m0nk/clj-bucket4j-datomic "0.1.0"]
+```
+- Maven
+```xml
+<dependency>
+  <groupId>net.clojars.fr33m0nk</groupId>
+  <artifactId>clj-bucket4j-datomic</artifactId>
+  <version>0.1.0</version>
+</dependency>
+```
+- Gradle
+```groovy
+implementation("net.clojars.fr33m0nk:clj-bucket4j-datomic:0.1.0")
+```
+### **Prior to using this below functions, it is necessary to execute [these Datomic migrations](https://github.com/fr33m0nk/clj-bucket4j-datomic/blob/master/src/fr33m0nk/datomic_schema.clj)**
 
-    $ clojure -X fr33m0nk.clj-bucket4j-datomic/foo :a 1 :b '"two"'
-    {:a 1, :b "two"} "Hello, World!"
+### **All functions are available through the [`fr33m0nk.clj-bucket4j-datomic`](https://github.com/fr33m0nk/clj-bucket4j-datomic/blob/master/src/fr33m0nk/clj_bucket4j_datomic.clj) namespace**
 
-Run the project's tests (they'll fail until you edit them):
+### Important Functions:
 
-    $ clojure -T:build test
+| Name                                                      | Description                                                                                                                                                                      |
+|-----------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `fr33m0nk.clj-bucket4j-datomic/->datomic-proxy-manager`   | Returns Distributed Bucket4J Proxy Manager for Datomic                                                                                                                           |
+| `fr33m0nk.clj-bucket4j-datomic/add-distributed-bucket`    | Adds a distributed bucket to Datomic. NOOP if bucket already exists.<br/> Returns the instance of bucket                                                                         |
+| `fr33m0nk.clj-bucket4j-datomic/remove-distributed-bucket` | Removes a distributed bucket. <br/> Permanent removal is determined by the RecoveryStrategy chosen while creating the bucket.<br/> Default strategy is to always RestoreOnDelete |
 
-Run the project's CI pipeline and build a JAR (this will fail until you edit the tests to pass):
+## Example usage:
+#### as a [distributed throttler](https://bucket4j.com/8.3.0/toc.html#using-bucket-as-throttler)
+> Suppose you need to have a fresh exchange rate between dollars and euros. To get the rate you continuously poll the third-party provider, and by contract with the provider you should poll not often than 100 times per 1 minute, else provider will block your IP:
+```clojure
+(require '[datomic.api :as d] '[fr33m0nk.clj-bucket4j :as b4j] '[fr33m0nk.datomic-schema :refer [b4j-schema]] '[fr33m0nk.clj-bucket4j-datomic :as b4j-datomic])
+(import '(io.github.bucket4j.distributed.proxy ClientSideConfig))
 
-    $ clojure -T:build ci
+(def datomic-conn (return-datomic-connection))
 
-This will produce an updated `pom.xml` file with synchronized dependencies inside the `META-INF`
-directory inside `target/classes` and the JAR in `target`. You can update the version (and SCM tag)
-information in generated `pom.xml` by updating `build.clj`.
+;; Execute Datomic migrations for supporting Distributed Bucket4J
+@(d/transact datomic-conn b4j-schema)
 
-Install it locally (requires the `ci` task be run first):
+;; Instance of datomic-proxy-manager
+;; For most cases `(ClientSideConfig/getDefault)` is enough
+;; Look into documentation of ClientSideConfig to figure right scenarios to customize it
+(def datomic-proxy-manager (b4j-datomic/->datomic-proxy-manager datomic-conn (ClientSideConfig/getDefault)))
 
-    $ clojure -T:build install
+;; Bucket configuration allowing 100 hits in 60000 ms (1 minute)
+(def bucket-configuration (-> (b4j/bucket-configuration-builder)
+                              (b4j/add-limit (b4j/simple-bandwidth 100 60000))
+                              (b4j/build)))
 
-Deploy it to Clojars -- needs `CLOJARS_USERNAME` and `CLOJARS_PASSWORD` environment
-variables (requires the `ci` task be run first):
+;; Adds a distributed bucket to Datomic
+(def distributed-bucket (b4j-datomic/add-distributed-bucket proxy-manager "test-bucket-1" bucket-configuration))
 
-    $ clojure -T:build deploy
+(def exchange-rates (atom 0.0))
 
-Your library will be deployed to net.clojars.fr33m0nk/clj-bucket4j-datomic on clojars.org by default.
+;; do polling in infinite loop
+(while true
+  ;; Consume a token from the token bucket.
+  ;; If a token is not available this function will block until the refill adds one to the bucket.
+  (when (b4j/try-consume distributed-bucket 1)
+    (swap! exchange-rate #(identity %2) (poll-exchange-rate))))
+
+```
+
+- More detailed usages of below functions can be found in [tests](https://github.com/fr33m0nk/clj-bucket4j-datomic/blob/master/test/fr33m0nk/clj_bucket4j_datomic_test.clj).
+
 
 ## License
 
-Copyright © 2023 Prashantsinha
+Copyright © 2023 Prashant Sinha
 
-_EPLv1.0 is just the default for projects generated by `deps-new`: you are not_
-_required to open source this project, nor are you required to use EPLv1.0!_
-_Feel free to remove or change the `LICENSE` file and remove or update this_
-_section of the `README.md` file!_
-
-Distributed under the Eclipse Public License version 1.0.
+Distributed under the MIT License.
