@@ -2,7 +2,7 @@
 
 Distributed [Bucket4J](https://github.com/bucket4j/bucket4j) implementation for Datomic Database
 <br/>
-**Note:** this library user Clojure wrapper for Bucket4J, [clj-bucket4j](https://github.com/fr33m0nk/clj-bucket4j)
+**Note:** this library uses Clojure wrapper for Bucket4J, [clj-bucket4j](https://github.com/fr33m0nk/clj-bucket4j)
 
 ## How to find this library?
 
@@ -10,23 +10,23 @@ Add the following to your project dependencies:
 
 - CLI/deps.edn dependency information
 ```
-net.clojars.fr33m0nk/clj-bucket4j-datomic {:mvn/version "0.1.0"}
+net.clojars.fr33m0nk/clj-bucket4j-datomic {:mvn/version "0.1.1"}
 ```
 - Leningen/Boot
 ```
-[net.clojars.fr33m0nk/clj-bucket4j-datomic "0.1.0"]
+[net.clojars.fr33m0nk/clj-bucket4j-datomic "0.1.1"]
 ```
 - Maven
 ```xml
 <dependency>
   <groupId>net.clojars.fr33m0nk</groupId>
   <artifactId>clj-bucket4j-datomic</artifactId>
-  <version>0.1.0</version>
+  <version>0.1.1</version>
 </dependency>
 ```
 - Gradle
 ```groovy
-implementation("net.clojars.fr33m0nk:clj-bucket4j-datomic:0.1.0")
+implementation("net.clojars.fr33m0nk:clj-bucket4j-datomic:0.1.1")
 ```
 ## Usage
 

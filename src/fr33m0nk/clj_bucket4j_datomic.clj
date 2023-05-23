@@ -45,7 +45,8 @@
                    nil
                    (catch Exception ex
                      (let [^Throwable inner-exception (or (.getCause ex) ex)]
-                       (.error ^Logger logger (format "Something went wrong while removing Datomic proxy for key: %s" bucket-id) inner-exception)))))
+                       (.error ^Logger logger (format "Something went wrong while removing Datomic proxy for key: %s" bucket-id) inner-exception)
+                       (throw inner-exception)))))
     (beginAsyncCompareAndSwapOperation [this bucket-id]
                                        (throw (UnsupportedOperationException.)))
     (removeAsync [this bucket-id]
