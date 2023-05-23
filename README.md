@@ -1,6 +1,7 @@
 # fr33m0nk/clj-bucket4j-datomic [![Clojars Project](https://img.shields.io/clojars/v/net.clojars.fr33m0nk/clj-bucket4j-datomic.svg)](https://clojars.org/net.clojars.fr33m0nk/clj-bucket4j-datomic)
 
 Distributed [Bucket4J](https://github.com/bucket4j/bucket4j) implementation for Datomic Database
+<br/>
 **Note:** this library user Clojure wrapper for Bucket4J, [clj-bucket4j](https://github.com/fr33m0nk/clj-bucket4j)
 
 ## How to find this library?
