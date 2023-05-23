@@ -70,7 +70,7 @@ implementation("net.clojars.fr33m0nk:clj-bucket4j-datomic:0.1.0")
 ;; do polling in infinite loop
 (while true
   ;; Consume a token from the token bucket.
-  ;; If a token is not available this function will block until the refill adds one to the bucket.
+  ;; Depending on the availability of Token, `b4j/try-consume` returns true or false.
   (when (b4j/try-consume distributed-bucket 1)
     (swap! exchange-rate #(identity %2) (poll-exchange-rate))))
 
