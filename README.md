@@ -1,6 +1,6 @@
 # fr33m0nk/clj-bucket4j-datomic [![Clojars Project](https://img.shields.io/clojars/v/net.clojars.fr33m0nk/clj-bucket4j-datomic.svg)](https://clojars.org/net.clojars.fr33m0nk/clj-bucket4j-datomic)
 
-Distributed Bucket4J implementation for Datomic Database 
+Distributed [Bucket4J](https://github.com/bucket4j/bucket4j) implementation for Datomic Database
 
 ## How to find this library?
 
