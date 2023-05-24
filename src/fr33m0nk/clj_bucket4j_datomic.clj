@@ -8,6 +8,7 @@
     (io.github.bucket4j.distributed.proxy ClientSideConfig RecoveryStrategy)
     (io.github.bucket4j.distributed.proxy.generic.compare_and_swap AbstractCompareAndSwapBasedProxyManager CompareAndSwapOperation)
     (java.util Optional)
+    (java.util.concurrent ExecutionException)
     (org.slf4j Logger LoggerFactory)))
 
 (def logger (LoggerFactory/getLogger "fr33m0nk.clj-bucket4j-datomic"))
@@ -19,14 +20,17 @@
     (try
       @(d/transact conn [[:bucket/transact bucket-id original-data new-data]])
       true
-      (catch Exception ex
-        (let [inner-exception (or (.getCause ex) ex)
+      (catch ExecutionException ex
+        (let [inner-exception (.getCause ^ExecutionException ex)
               cause (-> inner-exception ex-data :cognitect.anomalies/category)]
           (if (= cause :cognitect.anomalies/conflict)
             false
             (do
               (.error ^Logger logger (format "Something went wrong during compareAndSwap of Datomic proxy state for key: %s" bucket-id) inner-exception)
-              (throw ex)))))))
+              (throw inner-exception)))))
+      (catch Exception ex
+        (.error ^Logger logger (format "Something went wrong during compareAndSwap of Datomic proxy state for key: %s" bucket-id) ex)
+        (throw ex))))
   (getStateData [_]
     (let [bucket (d/pull (d/db conn) '[:bucket/id :bucket/state] [:bucket/id bucket-id])]
       (if (empty? bucket)
@@ -43,10 +47,17 @@
                  (try
                    @(d/transact conn [[:db/retractEntity [:bucket/id bucket-id]]])
                    nil
+                   (catch ExecutionException ex
+                     (let [inner-exception (.getCause ^ExecutionException ex)
+                           cause (-> inner-exception ex-data :cognitect.anomalies/category)]
+                       (if (= cause :cognitect.anomalies/conflict)
+                         false
+                         (do
+                           (.error ^Logger logger (format "Something went wrong while removing Datomic proxy for key: %s" bucket-id) inner-exception)
+                           (throw inner-exception)))))
                    (catch Exception ex
-                     (let [^Throwable inner-exception (or (.getCause ex) ex)]
-                       (.error ^Logger logger (format "Something went wrong while removing Datomic proxy for key: %s" bucket-id) inner-exception)
-                       (throw inner-exception)))))
+                     (.error ^Logger logger (format "Something went wrong while removing Datomic proxy for key: %s" bucket-id) ex)
+                     (throw ex))))
     (beginAsyncCompareAndSwapOperation [this bucket-id]
                                        (throw (UnsupportedOperationException.)))
     (removeAsync [this bucket-id]

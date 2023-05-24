@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>net.clojars.fr33m0nk</groupId>
   <artifactId>clj-bucket4j-datomic</artifactId>
-  <version>0.1.1</version>
+  <version>0.1.2</version>
   <name>fr33m0nk/clj-bucket4j-datomic</name>
   <description>Distributed Bucket4J implementation for Datomic database.</description>
   <url>https://github.com/fr33m0nk/clj-bucket4j-datomic</url>
@@ -22,7 +22,7 @@
     <url>https://github.com/fr33m0nk/clj-bucket4j-datomic</url>
     <connection>scm:git:git://github.com/fr33m0nk/clj-bucket4j-datomic.git</connection>
     <developerConnection>scm:git:ssh://git@github.com/fr33m0nk/clj-bucket4j-datomic.git</developerConnection>
-    <tag>v0.1.1-SNAPSHOT</tag>
+    <tag>v0.1.2-SNAPSHOT</tag>
   </scm>
   <dependencies>
   </dependencies>
