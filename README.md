@@ -67,7 +67,7 @@ implementation("net.clojars.fr33m0nk:clj-bucket4j-datomic:0.1.2")
                               (b4j/build)))
 
 ;; Adds a distributed bucket to Datomic
-(def distributed-bucket (b4j-datomic/add-distributed-bucket proxy-manager "test-bucket-1" bucket-configuration))
+(def distributed-bucket (b4j-datomic/add-distributed-bucket datomic-proxy-manager "test-bucket-1" bucket-configuration))
 
 (def exchange-rates (atom 0.0))
 
