@@ -10,23 +10,23 @@ Add the following to your project dependencies:
 
 - CLI/deps.edn dependency information
 ```
-net.clojars.fr33m0nk/clj-bucket4j-datomic {:mvn/version "0.1.3"}
+net.clojars.fr33m0nk/clj-bucket4j-datomic {:mvn/version "0.1.4"}
 ```
 - Leningen/Boot
 ```
-[net.clojars.fr33m0nk/clj-bucket4j-datomic "0.1.3"]
+[net.clojars.fr33m0nk/clj-bucket4j-datomic "0.1.4"]
 ```
 - Maven
 ```xml
 <dependency>
   <groupId>net.clojars.fr33m0nk</groupId>
   <artifactId>clj-bucket4j-datomic</artifactId>
-  <version>0.1.3</version>
+  <version>0.1.4</version>
 </dependency>
 ```
 - Gradle
 ```groovy
-implementation("net.clojars.fr33m0nk:clj-bucket4j-datomic:0.1.3")
+implementation("net.clojars.fr33m0nk:clj-bucket4j-datomic:0.1.4")
 ```
 ## Usage
 
