@@ -1,14 +1,14 @@
 (ns fr33m0nk.clj-bucket4j-datomic
   (:require
     [datomic.api :as d]
-    [fr33m0nk.clj-bucket4j :as b4j]
     [com.rpl.proxy-plus :refer [proxy+]])
   (:import
     (io.github.bucket4j BucketConfiguration)
     (io.github.bucket4j.distributed.proxy ClientSideConfig RecoveryStrategy)
     (io.github.bucket4j.distributed.proxy.generic.compare_and_swap AbstractCompareAndSwapBasedProxyManager CompareAndSwapOperation)
     (java.util Optional)
-    (java.util.concurrent ExecutionException)
+    (java.util.concurrent ExecutionException TimeUnit)
+    (java.util.function Function Supplier)
     (org.slf4j Logger LoggerFactory)))
 
 (def logger (LoggerFactory/getLogger "fr33m0nk.clj-bucket4j-datomic"))
@@ -16,10 +16,17 @@
 (deftype B4JDatomicTransaction
   [conn bucket-id]
   CompareAndSwapOperation
-  (compareAndSwap [_ original-data new-data _new-state]
+  (compareAndSwap [_ original-data new-data _new-state timeout-nanos]
     (try
-      @(d/transact conn [[:bucket/transact bucket-id original-data new-data]])
-      true
+      (if-let [timeout-ms (-> timeout-nanos
+                              (.map (reify Function
+                                      (apply [_ time-out-nanos]
+                                        (.toMillis TimeUnit/NANOSECONDS time-out-nanos))))
+                              (.orElse nil))]
+        (deref (d/transact conn [[:bucket/transact bucket-id original-data new-data]])
+               timeout-ms false)
+        (do @(d/transact conn [[:bucket/transact bucket-id original-data new-data]])
+            true))
       (catch ExecutionException ex
         (let [inner-exception (.getCause ^ExecutionException ex)
               cause (-> inner-exception ex-data :cognitect.anomalies/category)]
@@ -31,8 +38,18 @@
       (catch Exception ex
         (.error ^Logger logger (format "Something went wrong during compareAndSwap of Datomic proxy state for key: %s" bucket-id) ex)
         (throw ex))))
-  (getStateData [_]
-    (let [bucket (d/pull (d/db conn) '[:bucket/id :bucket/state] [:bucket/id bucket-id])]
+  (getStateData [_ timeout-nanos]
+    (let [bucket (if-let [timeout-ms (-> timeout-nanos
+                                         (.map (reify Function
+                                                 (apply [_ time-out-nanos]
+                                                   (.toMillis TimeUnit/NANOSECONDS time-out-nanos))))
+                                         (.orElse nil))]
+                   (d/q '[:find (pull ?e [:bucket/id :bucket/state]) .
+                          :in $ ?e]
+                        (d/db conn)
+                        [:bucket/id bucket-id]
+                        {:timeout timeout-ms})
+                   (d/pull (d/db conn) '[:bucket/id :bucket/state] [:bucket/id bucket-id]))]
       (if (empty? bucket)
         (Optional/empty)
         (Optional/of (:bucket/state bucket))))))
@@ -81,9 +98,9 @@
     (.removeProxy this bucket-id))
   (add-distributed-bucket
     ([this ^String bucket-id ^BucketConfiguration bucket-configuration]
-     (-> (b4j/get-remote-bucket-builder this)
-         (b4j/build bucket-id bucket-configuration)))
+     (-> (.builder this)
+         (.build bucket-id (reify Supplier (get [_] bucket-configuration)))))
     ([this ^String bucket-id ^BucketConfiguration bucket-configuration ^RecoveryStrategy recovery-strategy]
-     (-> (b4j/get-remote-bucket-builder this)
-         (b4j/with-recovery-strategy recovery-strategy)
-         (b4j/build bucket-id bucket-configuration)))))
+     (-> (.builder this)
+         (.withRecoveryStrategy recovery-strategy)
+         (.build bucket-id (reify Supplier (get [_] bucket-configuration)))))))

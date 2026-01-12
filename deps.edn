@@ -1,6 +1,6 @@
 {:paths ["src" "resources"]
  :deps {org.clojure/clojure {:mvn/version "1.11.1"}
-        net.clojars.fr33m0nk/clj-bucket4j {:mvn/version "0.1.4"}
+        com.bucket4j/bucket4j_jdk17-core {:mvn/version "8.16.0"}
         com.rpl/proxy-plus {:mvn/version "0.0.9"}}
  :aliases
  {:dev {:extra-deps {com.datomic/peer {:mvn/version "1.0.6733"}

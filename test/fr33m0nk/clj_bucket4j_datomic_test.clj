@@ -3,14 +3,15 @@
     [clojure.test :refer [deftest testing is]]
     [datomic.api :as d]
     [fr33m0nk.datomic-schema :refer [b4j-schema]]
-    [fr33m0nk.clj-bucket4j-datomic :as b4j-datomic]
-    [fr33m0nk.clj-bucket4j :as b4j])
+    [fr33m0nk.clj-bucket4j-datomic :as b4j-datomic])
   (:import
     (fr33m0nk.clj_bucket4j_datomic B4JDatomicTransaction)
+    (io.github.bucket4j Bandwidth BucketConfiguration)
     (io.github.bucket4j.distributed.proxy BucketNotFoundException ClientSideConfig RecoveryStrategy)
     (io.github.bucket4j.distributed.proxy.generic.compare_and_swap AbstractCompareAndSwapBasedProxyManager)
+    (java.time Duration)
     (java.util.concurrent CountDownLatch)
-    (java.util.function Supplier)))
+    (java.util.function Function Supplier)))
 
 (defmacro test-harness
   [datomic-conn & body]
@@ -41,14 +42,18 @@
         (is (instance? B4JDatomicTransaction (b4j-datomic/begin-compare-and-swap-operation proxy-manager "test-key"))))
 
       (let [bucket-configuration (fn [capacity interval-ms]
-                                   (-> (b4j/bucket-configuration-builder)
-                                       (b4j/add-limit (b4j/simple-bandwidth capacity interval-ms))
-                                       (b4j/build)))
-            bucket-1 (b4j-datomic/add-distributed-bucket proxy-manager "test-bucket-1" (bucket-configuration 4 14400000))
-            bucket-2 (b4j-datomic/add-distributed-bucket proxy-manager "test-bucket-2" (bucket-configuration 8 60000))]
+                                   (-> (BucketConfiguration/builder)
+                                       (.addLimit (Bandwidth/simple capacity (Duration/ofMillis interval-ms)))
+                                       (.build)))
+            bucket-1 (-> proxy-manager
+                         (.builder)
+                         (.build "test-bucket-1" (bucket-configuration 4 14400000)))
+            bucket-2 (-> proxy-manager
+                         (.builder)
+                         (.build "test-bucket-2" (bucket-configuration 8 60000)))]
         (testing "adds a distributed bucket"
-          (is (= 8 (b4j/get-available-token-count bucket-2)))
-          (is (= 4 (b4j/get-available-token-count bucket-1)))
+          (is (= 8 (.getAvailableTokens bucket-2)))
+          (is (= 4 (.getAvailableTokens bucket-1)))
           (is (= 2 (->> (d/datoms (d/db datomic-conn) :avet :bucket/id)
                         (keep :e)
                         count)))
@@ -63,7 +68,11 @@
                   :refillTokens 4
                   :timeOfFirstRefillMillis -9223372036854775808
                   :useAdaptiveInitialTokens false}
-                 (bean (first (.getBandwidths (b4j/get-proxy-configuration proxy-manager "test-bucket-1"))))))
+                 (some-> (.getProxyConfiguration proxy-manager "test-bucket-1")
+                         (.orElse nil)
+                         (.getBandwidths)
+                         (first)
+                         (bean))))
           (is (= {:capacity 8
                   :class io.github.bucket4j.Bandwidth
                   :gready true
@@ -75,38 +84,55 @@
                   :refillTokens 8
                   :timeOfFirstRefillMillis -9223372036854775808
                   :useAdaptiveInitialTokens false}
-                 (bean (first (.getBandwidths (b4j/get-proxy-configuration proxy-manager "test-bucket-2")))))))
+                 (some-> (.getProxyConfiguration proxy-manager "test-bucket-2")
+                         (.orElse nil)
+                         (.getBandwidths)
+                         (first)
+                         (bean)))))
 
         (testing "removes proxy for provided bucket id"
-          (is (some? (b4j/get-proxy-configuration proxy-manager "test-bucket-1")))
-          (b4j-datomic/remove-distributed-bucket proxy-manager "test-bucket-1")
-          (is (nil? (b4j/get-proxy-configuration proxy-manager "test-bucket-1"))
+          (is (some? (-> proxy-manager
+                         (.getProxyConfiguration "test-bucket-1")
+                         (.orElse nil))))
+          (.removeProxy proxy-manager "test-bucket-1")
+          (is (nil? (-> proxy-manager
+                        (.getProxyConfiguration "test-bucket-1")
+                        (.orElse nil)))
               "This is only temporary. Proxy Manager would restore the bucket as default RecoveryStrategy is to reconstruct bucket")
-          (is (some? (b4j/get-proxy-configuration proxy-manager "test-bucket-2")))
+          (is (some? (-> proxy-manager
+                         (.getProxyConfiguration "test-bucket-2")
+                         (.orElse nil))))
           (is (= 1 (->> (d/datoms (d/db datomic-conn) :avet :bucket/id)
                         (keep :e)
                         count))))
 
         (testing "recovers from a crash using default reconstruct RecoveryStrategy"
-          (is (true? (b4j/try-consume bucket-2 1)))
+          (is (true? (.tryConsume bucket-2 1)))
           ;; simulate a crash
-          (b4j-datomic/remove-distributed-bucket proxy-manager "test-bucket-2")
-          (is (true? (b4j/try-consume bucket-2 1))))
+          (.removeProxy proxy-manager "test-bucket-2")
+          (is (true? (.tryConsume bucket-2 1))))
 
         (testing "recovers from a crash and throws exception using ThrowExceptionRecoveryStrategy"
-          (let [bucket-3 (b4j-datomic/add-distributed-bucket proxy-manager "test-bucket-3" (bucket-configuration 8 60000) (RecoveryStrategy/THROW_BUCKET_NOT_FOUND_EXCEPTION))]
-            (is (true? (b4j/try-consume bucket-3 1)))
+          (let [bucket-3 (-> proxy-manager
+                             (.builder)
+                             (.withRecoveryStrategy RecoveryStrategy/THROW_BUCKET_NOT_FOUND_EXCEPTION)
+                             (.build "test-bucket-3"
+                                     (bucket-configuration 8 60000)))]
+            (is (true? (.tryConsume bucket-3 1)))
             ;; simulate a crash
             (b4j-datomic/remove-distributed-bucket proxy-manager "test-bucket-3")
             (is (instance? BucketNotFoundException (try
-                                                     (b4j/try-consume bucket-3 1)
+                                                     (.tryConsume bucket-3 1)
                                                      (catch Exception ex
                                                        ex))))))
 
         (testing "returns parallel initialized buckets and buckets are thread safe"
-          (let [configuration (-> (b4j/bucket-configuration-builder)
-                                  (b4j/add-limit (b4j/classic-bandwidth 10 (b4j/refill-intervally 1 60000)))
-                                  (b4j/build))
+          (let [configuration (-> (BucketConfiguration/builder)
+                                  (.addLimit (reify Function
+                                                (apply [_ limit]
+                                                  (.capacity limit 10)
+                                                  (.refillIntervally limit 1 (Duration/ofMillis 60000)))))
+                                  (.build))
                 parallelism (int 4)
                 start-latch (CountDownLatch. parallelism)
                 stop-latch (CountDownLatch. parallelism)]
@@ -118,19 +144,20 @@
                                          (catch InterruptedException ex
                                            (.printStackTrace ex)))
                                        (try
-                                         (let [bucket (b4j-datomic/add-distributed-bucket proxy-manager
-                                                                                          "parallel-test-bucket"
-                                                                                          (reify Supplier
-                                                                                            (get [_]
-                                                                                              configuration)))]
-                                           (b4j/try-consume bucket 1))
+                                         (let [bucket
+                                               (-> proxy-manager
+                                                   (.builder)
+                                                   (.build "parallel-test-bucket"
+                                                           (reify Supplier (get [_] configuration))))]
+                                           (.tryConsume bucket 1))
                                          (catch Exception ex
                                            (.printStackTrace ex))
                                          (finally
                                            (.countDown stop-latch)))))
                   (.start)))
             (.await stop-latch)
-            (let [bucket (b4j-datomic/add-distributed-bucket proxy-manager "parallel-test-bucket" (reify Supplier
-                                                                                                    (get [_]
-                                                                                                      configuration)))]
-              (is (= (- 10 parallelism) (b4j/get-available-token-count bucket))))))))))
+            (let [bucket
+                  (-> proxy-manager
+                      (.builder)
+                      (.build "parallel-test-bucket" (reify Supplier (get [_] configuration))))]
+              (is (= (- 10 parallelism) (.getAvailableTokens bucket))))))))))
