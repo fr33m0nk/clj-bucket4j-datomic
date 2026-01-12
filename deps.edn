@@ -1,9 +1,9 @@
 {:paths ["src" "resources"]
- :deps {org.clojure/clojure {:mvn/version "1.11.1"}
-        com.bucket4j/bucket4j_jdk17-core {:mvn/version "8.16.0"}
+ :deps {com.bucket4j/bucket4j_jdk17-core {:mvn/version "8.16.0"}
         com.rpl/proxy-plus {:mvn/version "0.0.9"}}
  :aliases
- {:dev {:extra-deps {com.datomic/peer {:mvn/version "1.0.6733"}
+ {:dev {:extra-deps {org.clojure/clojure {:mvn/version "1.11.1"}
+                     com.datomic/peer {:mvn/version "1.0.6733"}
                      com.taoensso/timbre {:mvn/version "6.1.0"}
                      com.fzakaria/slf4j-timbre {:mvn/version "0.3.21"}}}
   :test
