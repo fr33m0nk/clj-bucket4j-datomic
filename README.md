@@ -10,23 +10,23 @@ Add the following to your project dependencies:
 
 - CLI/deps.edn dependency information
 ```
-net.clojars.fr33m0nk/clj-bucket4j-datomic {:mvn/version "0.1.2"}
+net.clojars.fr33m0nk/clj-bucket4j-datomic {:mvn/version "0.1.3"}
 ```
 - Leningen/Boot
 ```
-[net.clojars.fr33m0nk/clj-bucket4j-datomic "0.1.2"]
+[net.clojars.fr33m0nk/clj-bucket4j-datomic "0.1.3"]
 ```
 - Maven
 ```xml
 <dependency>
   <groupId>net.clojars.fr33m0nk</groupId>
   <artifactId>clj-bucket4j-datomic</artifactId>
-  <version>0.1.2</version>
+  <version>0.1.3</version>
 </dependency>
 ```
 - Gradle
 ```groovy
-implementation("net.clojars.fr33m0nk:clj-bucket4j-datomic:0.1.2")
+implementation("net.clojars.fr33m0nk:clj-bucket4j-datomic:0.1.3")
 ```
 ## Usage
 
@@ -48,7 +48,9 @@ implementation("net.clojars.fr33m0nk:clj-bucket4j-datomic:0.1.2")
 #### as a [distributed throttler](https://bucket4j.com/8.3.0/toc.html#using-bucket-as-throttler)
 > Suppose you need to have a fresh exchange rate between dollars and euros. To get the rate you continuously poll the third-party provider, and by contract with the provider you should poll not often than 100 times per 1 minute, else provider will block your IP:
 ```clojure
-(require '[datomic.api :as d] '[fr33m0nk.clj-bucket4j :as b4j] '[fr33m0nk.datomic-schema :refer [b4j-schema]] '[fr33m0nk.clj-bucket4j-datomic :as b4j-datomic])
+(require '[datomic.api :as d]
+         '[fr33m0nk.datomic-schema :refer [b4j-schema]]
+         '[fr33m0nk.clj-bucket4j-datomic :as b4j-datomic])
 (import '(io.github.bucket4j.distributed.proxy ClientSideConfig))
 
 (def datomic-conn (return-datomic-connection))
@@ -62,9 +64,13 @@ implementation("net.clojars.fr33m0nk:clj-bucket4j-datomic:0.1.2")
 (def datomic-proxy-manager (b4j-datomic/->datomic-proxy-manager datomic-conn (ClientSideConfig/getDefault)))
 
 ;; Bucket configuration allowing 100 hits in 60000 ms (1 minute)
-(def bucket-configuration (-> (b4j/bucket-configuration-builder)
-                              (b4j/add-limit (b4j/simple-bandwidth 100 60000))
-                              (b4j/build)))
+(def bucket-configuration (-> (BucketConfiguration/builder)
+                              (.addLimit
+                                (reify java.util.function.Function
+                                  (apply [_ limit]
+                                    (.capacity limit capacity)
+                                    (.refillGreedy limit capacity (Duration/ofMillis interval-ms)))))
+                              (.build)))
 
 ;; Adds a distributed bucket to Datomic
 (def distributed-bucket (b4j-datomic/add-distributed-bucket datomic-proxy-manager "test-bucket-1" bucket-configuration))
@@ -74,8 +80,8 @@ implementation("net.clojars.fr33m0nk:clj-bucket4j-datomic:0.1.2")
 ;; do polling in infinite loop
 (while true
   ;; Consume a token from the token bucket.
-  ;; Depending on the availability of Token, `b4j/try-consume` returns true or false.
-  (when (b4j/try-consume distributed-bucket 1)
+  ;; Depending on the availability of Token, `.tryConsume` returns true or false.
+  (when (.tryConsume distributed-bucket 1)
     (swap! exchange-rate #(identity %2) (poll-exchange-rate))))
 
 ```
@@ -84,6 +90,6 @@ implementation("net.clojars.fr33m0nk:clj-bucket4j-datomic:0.1.2")
 
 ## License
 
-Copyright © 2023 Prashant Sinha
+Copyright © 2026 Prashant Sinha
 
 Distributed under the MIT License.

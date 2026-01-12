@@ -6,7 +6,7 @@
     [fr33m0nk.clj-bucket4j-datomic :as b4j-datomic])
   (:import
     (fr33m0nk.clj_bucket4j_datomic B4JDatomicTransaction)
-    (io.github.bucket4j Bandwidth BucketConfiguration)
+    (io.github.bucket4j BucketConfiguration)
     (io.github.bucket4j.distributed.proxy BucketNotFoundException ClientSideConfig RecoveryStrategy)
     (io.github.bucket4j.distributed.proxy.generic.compare_and_swap AbstractCompareAndSwapBasedProxyManager)
     (java.time Duration)
@@ -43,7 +43,11 @@
 
       (let [bucket-configuration (fn [capacity interval-ms]
                                    (-> (BucketConfiguration/builder)
-                                       (.addLimit (Bandwidth/simple capacity (Duration/ofMillis interval-ms)))
+                                       (.addLimit
+                                         (reify Function
+                                           (apply [_ limit]
+                                             (.capacity limit capacity)
+                                             (.refillGreedy limit capacity (Duration/ofMillis interval-ms)))))
                                        (.build)))
             bucket-1 (-> proxy-manager
                          (.builder)
